@@ -12,7 +12,11 @@ st.set_page_config(
 st.title("Job Classification Dashboard")
 st.markdown("Dashboard Analisis dan Prediksi Kategori Lowongan Kerja")
 
-df = pd.read_csv("output/B4.csv")
+# LOAD DATA
+
+df = pd.read_csv("B4.csv")
+
+# KPI
 
 col1, col2, col3 = st.columns(3)
 
@@ -36,11 +40,13 @@ with col3:
 
 st.divider()
 
+# FILTER
+
 st.subheader("Filter Data")
 
 kategori = st.multiselect(
     "Pilih Kategori",
-    sorted(df["final_category"].unique())
+    sorted(df["final_category"].dropna().unique())
 )
 
 if kategori:
@@ -50,12 +56,16 @@ if kategori:
 else:
     filtered_df = df.copy()
 
+# DATA TABLE
+
 st.subheader("Data Lowongan Kerja")
 
 st.dataframe(
     filtered_df,
     use_container_width=True
 )
+
+# DISTRIBUSI KATEGORI
 
 st.subheader("Distribusi Kategori Pekerjaan")
 
@@ -83,6 +93,8 @@ st.plotly_chart(
     use_container_width=True
 )
 
+# PIE CHART
+
 fig_pie = px.pie(
     kategori_count,
     names="Kategori",
@@ -95,11 +107,13 @@ st.plotly_chart(
     use_container_width=True
 )
 
-st.subheader("Skill yang Tersedia")
+# TOP SKILL
+
+st.subheader("Top Skill")
 
 if "job_skill" in filtered_df.columns:
 
-    skills_text = " ".join(
+    skills_text = ", ".join(
         filtered_df["job_skill"]
         .astype(str)
         .tolist()
@@ -110,7 +124,7 @@ if "job_skill" in filtered_df.columns:
     for item in skills_text.split(","):
         item = item.strip()
 
-        if item != "":
+        if item:
             skill_list.append(item)
 
     if len(skill_list) > 0:
@@ -140,19 +154,23 @@ if "job_skill" in filtered_df.columns:
             use_container_width=True
         )
 
+# LOAD MODEL
+
 model = pickle.load(
     open(
-        "output/B4_model.pkl",
+        "B4_model.pkl",
         "rb"
     )
 )
 
 vectorizer = pickle.load(
     open(
-        "output/B4_vectorizer.pkl",
+        "B4_vectorizer.pkl",
         "rb"
     )
 )
+
+# PREDIKSI
 
 st.divider()
 
@@ -195,7 +213,9 @@ if st.button("Prediksi"):
             f"Kategori Prediksi: {prediction}"
         )
 
+# FOOTER
+
 st.markdown("---")
 st.caption(
-    "Dashboard Machine Learning Klasifikasi Lowongan Kerja menggunakan TF-IDF dan Linear SVC"
+    "Dashboard Machine Learning Klasifikasi Lowongan Kerja menggunakan TF-IDF dan LinearSVC"
 )
