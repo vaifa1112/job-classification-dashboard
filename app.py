@@ -3,6 +3,10 @@ import pandas as pd
 import pickle
 import plotly.express as px
 
+# =====================================
+# PAGE CONFIG
+# =====================================
+
 st.set_page_config(
     page_title="Job Classification Dashboard",
     page_icon="📊",
@@ -10,13 +14,38 @@ st.set_page_config(
 )
 
 st.title("Job Classification Dashboard")
-st.markdown("Dashboard Analisis dan Prediksi Kategori Lowongan Kerja")
+st.markdown(
+    "Dashboard Analisis dan Prediksi Kategori Lowongan Kerja"
+)
 
+# =====================================
 # LOAD DATA
+# =====================================
 
 df = pd.read_csv("B4.csv")
 
+# DETEKSI KOLOM KATEGORI
+
+if "final_category" in df.columns:
+    category_col = "final_category"
+
+elif "label" in df.columns:
+    category_col = "label"
+
+else:
+    st.error(
+        f"""
+        Kolom kategori tidak ditemukan.
+
+        Kolom yang tersedia:
+        {df.columns.tolist()}
+        """
+    )
+    st.stop()
+
+# =====================================
 # KPI
+# =====================================
 
 col1, col2, col3 = st.columns(3)
 
@@ -29,34 +58,56 @@ with col1:
 with col2:
     st.metric(
         "Jumlah Kategori",
-        df["final_category"].nunique()
+        df[category_col].nunique()
     )
 
 with col3:
-    st.metric(
-        "Jenis Pekerjaan",
-        df["job_type"].nunique()
-    )
+
+    if "job_type" in df.columns:
+
+        st.metric(
+            "Jenis Pekerjaan",
+            df["job_type"].nunique()
+        )
+
+    else:
+
+        st.metric(
+            "Jenis Pekerjaan",
+            "-"
+        )
 
 st.divider()
 
+# =====================================
 # FILTER
+# =====================================
 
 st.subheader("Filter Data")
 
 kategori = st.multiselect(
     "Pilih Kategori",
-    sorted(df["final_category"].dropna().unique())
+    sorted(
+        df[category_col]
+        .dropna()
+        .unique()
+    )
 )
 
 if kategori:
+
     filtered_df = df[
-        df["final_category"].isin(kategori)
+        df[category_col]
+        .isin(kategori)
     ]
+
 else:
+
     filtered_df = df.copy()
 
+# =====================================
 # DATA TABLE
+# =====================================
 
 st.subheader("Data Lowongan Kerja")
 
@@ -65,12 +116,16 @@ st.dataframe(
     use_container_width=True
 )
 
+# =====================================
 # DISTRIBUSI KATEGORI
+# =====================================
 
-st.subheader("Distribusi Kategori Pekerjaan")
+st.subheader(
+    "Distribusi Kategori Pekerjaan"
+)
 
 kategori_count = (
-    filtered_df["final_category"]
+    filtered_df[category_col]
     .value_counts()
     .reset_index()
 )
@@ -93,7 +148,9 @@ st.plotly_chart(
     use_container_width=True
 )
 
+# =====================================
 # PIE CHART
+# =====================================
 
 fig_pie = px.pie(
     kategori_count,
@@ -107,7 +164,9 @@ st.plotly_chart(
     use_container_width=True
 )
 
+# =====================================
 # TOP SKILL
+# =====================================
 
 st.subheader("Top Skill")
 
@@ -122,6 +181,7 @@ if "job_skill" in filtered_df.columns:
     skill_list = []
 
     for item in skills_text.split(","):
+
         item = item.strip()
 
         if item:
@@ -154,7 +214,9 @@ if "job_skill" in filtered_df.columns:
             use_container_width=True
         )
 
+# =====================================
 # LOAD MODEL
+# =====================================
 
 model = pickle.load(
     open(
@@ -170,11 +232,15 @@ vectorizer = pickle.load(
     )
 )
 
+# =====================================
 # PREDIKSI
+# =====================================
 
 st.divider()
 
-st.subheader("Prediksi Kategori Pekerjaan")
+st.subheader(
+    "Prediksi Kategori Pekerjaan"
+)
 
 job_title = st.text_input(
     "Job Title",
@@ -188,7 +254,12 @@ job_skill = st.text_area(
 
 if st.button("Prediksi"):
 
-    if job_title.strip() == "" and job_skill.strip() == "":
+    if (
+        job_title.strip() == ""
+        and
+        job_skill.strip() == ""
+    ):
+
         st.warning(
             "Masukkan Job Title atau Skill terlebih dahulu."
         )
@@ -209,13 +280,26 @@ if st.button("Prediksi"):
             vector
         )[0]
 
+        valid_categories = (
+            df[category_col]
+            .dropna()
+            .unique()
+            .tolist()
+        )
+
+        if prediction not in valid_categories:
+            prediction = "general_role"
+
         st.success(
             f"Kategori Prediksi: {prediction}"
         )
 
+# =====================================
 # FOOTER
+# =====================================
 
 st.markdown("---")
+
 st.caption(
     "Dashboard Machine Learning Klasifikasi Lowongan Kerja menggunakan TF-IDF dan LinearSVC"
 )
